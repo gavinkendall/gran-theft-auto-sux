@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gran Theft Auto Sux</title>
+<style>
+:root{--bg:#dbe9e4;--field:#f6fbf9;--fg:#0c2a36;--muted:#5b7580;--ship:#0f5c7a;--rock:#b3234a;--star:#e8a50f;--hud:#0c2a36;
+  box-sizing:border-box;color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07131f;--field:#0e2538;--fg:#e6f4f7;--muted:#8fb0bb;--ship:#5fd3e8;--rock:#ff5d7a;--star:#ffd166;--hud:#e6f4f7;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#07131f;--field:#0e2538;--fg:#e6f4f7;--muted:#8fb0bb;--ship:#5fd3e8;--rock:#ff5d7a;--star:#ffd166;--hud:#e6f4f7;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;max-width:94vw;max-height:92%;width:auto;height:auto;border-radius:14px;background:var(--field);box-shadow:0 0 0 2px var(--muted);cursor:none;outline-offset:4px}
+canvas:focus-visible{outline:3px solid var(--ship)}
+</style>
+</head>
+<body>
+<canvas id="c" width="360" height="540" tabindex="0" aria-label="Gran Theft Auto Sux game. Steer the wheelchair with mouse, touch or arrow keys."></canvas>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=360,H=540,SY=H-70;
+let col={},n=0;
+function colors(){const cs=getComputedStyle(document.documentElement);
+  ['ship','rock','star','hud','muted','field'].forEach(k=>col[k]=cs.getPropertyValue('--'+k).trim())}
+let best=0;try{best=+localStorage.getItem('star-dodger-best')||0}catch(e){}
+let s,target=W/2,keys={};
+function reset(){s={x:W/2,score:0,lives:3,t:0,items:[],spawn:.4,over:false,started:false,flash:0,pop:[]};target=W/2}
+reset();
+function setX(cx){const r=cv.getBoundingClientRect();target=Math.max(18,Math.min(W-18,(cx-r.left)/r.width*W))}
+function act(){if(!s.started||s.over){reset();s.started=true}}
+cv.addEventListener('pointermove',e=>setX(e.clientX));
+cv.addEventListener('pointerdown',e=>{setX(e.clientX);act()});
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.key===' '||e.key==='Enter'){e.preventDefault();act()}});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+
+function update(dt){
+  const dir=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0);
+  if(dir)target=Math.max(18,Math.min(W-18,target+dir*460*dt));
+  s.x+=(target-s.x)*Math.min(1,dt*16);
+  s.pop=s.pop.filter(p=>(p.life-=dt)>0);
+  s.flash=Math.max(0,s.flash-dt);
+  if(!s.started||s.over)return;
+  s.t+=dt;
+  s.spawn-=dt;
+  if(s.spawn<=0){
+    s.spawn=Math.max(.22,.7-s.t*.008);
+    const star=Math.random()<.3,r=star?11:13+Math.random()*10;
+    s.items.push({x:r+Math.random()*(W-2*r),y:-r,r,star,h:[330,190,140,45,270][Math.random()*5|0],v:120+s.t*3.5+Math.random()*70,a:Math.random()*6});
+  }
+  for(const it of s.items){
+    it.y+=it.v*dt;it.a+=dt*(it.star?2:1);
+    if(!it.hit&&Math.hypot(it.x-(s.x+4),it.y-(SY-18))<it.r+18){
+      it.hit=1;
+      if(it.star){s.score+=10;s.pop.push({x:it.x,y:it.y,life:.5,t:'+10'})}
+      else{s.lives--;s.flash=.35;if(s.lives<=0){s.over=true;
+        if(s.score>best){best=Math.floor(s.score);try{localStorage.setItem('star-dodger-best',best)}catch(e){}}}}
+    }
+  }
+  s.items=s.items.filter(it=>!it.hit&&it.y<H+30);
+}
+function granny(x,y){
+  const skin='#f1c7a0',dress='#9b7fc4',spin=x*.1;
+  ctx.lineCap='round';ctx.strokeStyle=col.hud;ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x-11,y-10);ctx.lineTo(x-14,y-18);ctx.moveTo(x+11,y-10);ctx.lineTo(x+14,y-18);ctx.moveTo(x-13,y+11);ctx.lineTo(x+13,y+11);ctx.stroke();
+  for(const d of[-19,19]){const cx=x+d,cy=y+9;
+    ctx.lineWidth=3;ctx.beginPath();ctx.arc(cx,cy,11,0,7);ctx.stroke();
+    ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<4;i++){const t=spin+i*Math.PI/4,c=Math.cos(t)*11,v=Math.sin(t)*11;ctx.moveTo(cx-c,cy-v);ctx.lineTo(cx+c,cy+v)}ctx.stroke();
+    ctx.fillStyle=col.hud;ctx.beginPath();ctx.arc(cx,cy,2,0,7);ctx.fill()}
+  ctx.fillStyle=col.hud;for(const d of[-10,10]){ctx.beginPath();ctx.arc(x+d,y+22,3,0,7);ctx.fill()}
+  ctx.fillStyle=dress;ctx.beginPath();ctx.moveTo(x-9,y-4);ctx.lineTo(x+9,y-4);ctx.lineTo(x+12,y+13);ctx.lineTo(x-12,y+13);ctx.closePath();ctx.fill();
+  ctx.fillStyle=skin;ctx.fillRect(x-8,y+12,5,5);ctx.fillRect(x+3,y+12,5,5);
+  ctx.fillStyle=col.hud;ctx.fillRect(x-9,y+17,7,3);ctx.fillRect(x+2,y+17,7,3);
+  ctx.fillStyle=col.ship;ctx.beginPath();ctx.roundRect(x-10,y-14,20,16,5);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(x-3,y-14);ctx.lineTo(x+3,y-14);ctx.lineTo(x,y-7);ctx.fill();
+  ctx.fillStyle='#d7dbe6';for(const [u,v,rr] of[[-6,-25,4],[6,-25,4],[0,-28,5],[0,-34,3.5]]){ctx.beginPath();ctx.arc(x+u,y+v,rr,0,7);ctx.fill()}
+  ctx.fillStyle=skin;ctx.beginPath();ctx.arc(x,y-21,7,0,7);ctx.fill();
+  ctx.fillStyle='rgba(240,110,110,.4)';for(const d of[-5,5]){ctx.beginPath();ctx.arc(x+d,y-18.5,1.8,0,7);ctx.fill()}
+  ctx.strokeStyle=col.hud;ctx.lineWidth=1.2;for(const d of[-3,3]){ctx.beginPath();ctx.arc(x+d,y-22,2.4,0,7);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(x-.6,y-22);ctx.lineTo(x+.6,y-22);ctx.moveTo(x-2.6,y-19.2);ctx.arc(x,y-19.6,2.6,.3,Math.PI-.3);ctx.stroke();
+  ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+11,y+6);ctx.lineTo(x+11,y-40);ctx.stroke();
+  ctx.fillStyle=col.rock;ctx.beginPath();ctx.roundRect(x+4,y+1,15,11,4);ctx.fill();
+  ctx.fillStyle=col.hud;ctx.beginPath();ctx.roundRect(x-14,y-46,32,8,4);ctx.fill();
+  ctx.fillStyle=col.star;ctx.fillRect(x-12,y-39,28,2);
+  ctx.strokeStyle=col.ship;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x+8,y-11);ctx.lineTo(x+11,y-9);ctx.moveTo(x-8,y-11);ctx.lineTo(x+11,y-4);ctx.stroke();
+  ctx.fillStyle=skin;for(const v of[-9,-4]){ctx.beginPath();ctx.arc(x+11,y+v,2.6,0,7);ctx.fill()}
+  const t=(Date.now()%500)/500;ctx.globalAlpha=.55*(1-t);ctx.strokeStyle=col.ship;ctx.lineWidth=2;
+  for(const d of[-8,2,12]){ctx.beginPath();ctx.moveTo(x+d*1.4,y-62+t*10);ctx.lineTo(x+d,y-52+t*10);ctx.stroke()}
+  ctx.globalAlpha=1;ctx.lineCap='butt';
+}
+function jewel(x,y,r,a,h){
+  const g=l=>`hsl(${h} 85% ${l}%)`,p=[[-.6,-.6],[.6,-.6],[1,-.1],[0,1],[-1,-.1]];
+  ctx.fillStyle=g(55);ctx.beginPath();p.forEach(([u,v])=>ctx.lineTo(x+u*r,y+v*r));ctx.closePath();ctx.fill();
+  ctx.fillStyle=g(78);ctx.beginPath();ctx.moveTo(x-.6*r,y-.6*r);ctx.lineTo(x+.6*r,y-.6*r);ctx.lineTo(x+.3*r,y-.1*r);ctx.lineTo(x-.3*r,y-.1*r);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1;ctx.beginPath();
+  ctx.moveTo(x-r,y-.1*r);ctx.lineTo(x+r,y-.1*r);ctx.moveTo(x-.3*r,y-.1*r);ctx.lineTo(x,y+r);ctx.moveTo(x+.3*r,y-.1*r);ctx.lineTo(x,y+r);ctx.stroke();
+  if(Math.sin(a*4)>.4){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-.35*r,y-.4*r,r*.14,0,7);ctx.fill()}
+}
+function relative(x,y,r,a){
+  ctx.save();ctx.translate(x,y);const k=r/16;ctx.scale(k,k);ctx.rotate(Math.sin(a*2)*.2);
+  ctx.fillStyle='#2b2b36';ctx.fillRect(-6,8,5,9);ctx.fillRect(1,8,5,9);
+  ctx.fillStyle=col.rock;ctx.fillRect(-9,-7,18,17);
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(-3,-7);ctx.lineTo(3,-7);ctx.lineTo(0,0);ctx.fill();
+  ctx.fillStyle=col.hud;ctx.beginPath();ctx.arc(0,-1,1.3,0,7);ctx.arc(0,4,1.3,0,7);ctx.fill();
+  ctx.fillStyle='#f1c7a0';ctx.beginPath();ctx.arc(0,-14,6.5,0,7);ctx.fill();
+  ctx.fillStyle='#4a3426';ctx.beginPath();ctx.arc(0,-15,7,Math.PI,0);ctx.fill();
+  ctx.strokeStyle='#2b2b36';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(0,-12,3.2,.2,Math.PI-.2);ctx.stroke();
+  ctx.fillStyle='#7a4a21';ctx.fillRect(7,-4,12,16);ctx.fillStyle='#fff';ctx.fillRect(8.5,-1.5,9,12);ctx.fillStyle='#8a94a6';ctx.fillRect(10,2,6,1);ctx.fillRect(10,5,6,1);ctx.fillRect(10,8,4,1);
+  ctx.restore();
+}
+function text(t,x,y,size,color,al='center'){ctx.fillStyle=color;ctx.textAlign=al;ctx.font='700 '+size+'px system-ui,sans-serif';ctx.fillText(t,x,y)}
+function draw(){
+  if(n++%30===0)colors();
+  ctx.clearRect(0,0,W,H);
+  for(const it of s.items){
+    
+    it.star?jewel(it.x,it.y,it.r,it.a,it.h):relative(it.x,it.y,it.r,it.a);
+  }
+  if(!s.over||Math.floor(s.t*8)%2===0){
+    granny(s.x,SY);
+    
+  }
+  for(const p of s.pop)text(p.t,p.x,p.y-(.5-p.life)*40,16,col.star);
+  if(s.flash){ctx.globalAlpha=s.flash;ctx.fillStyle=col.rock;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1}
+  text(String(Math.floor(s.score)),16,32,24,col.hud,'left');
+  text('Best '+best,W-16,30,14,col.muted,'right');
+  for(let i=0;i<3;i++){ctx.fillStyle=i<s.lives?col.ship:col.muted;ctx.globalAlpha=i<s.lives?1:.3;ctx.beginPath();ctx.arc(W-22-i*20,48,6,0,7);ctx.fill();ctx.globalAlpha=1}
+  if(!s.started){
+    text('Gran Theft Auto Sux',W/2,H/2-40,26,col.hud);
+    text('Steer with mouse, touch or arrow keys',W/2,H/2,14,col.muted);
+    text('Vacuum up jewels. Dodge the car salesmen.',W/2,H/2+22,14,col.muted);
+    text('Tap or press Space to start',W/2,H/2+64,16,col.ship);
+  }else if(s.over){
+    text('Game Over',W/2,H/2-30,34,col.hud);
+    text('Score '+Math.floor(s.score)+(Math.floor(s.score)>=best?' · new best!':''),W/2,H/2+6,16,col.star);
+    text('Tap or press Space to play again',W/2,H/2+48,16,col.ship);
+  }
+}
+let last=0;
+function frame(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;update(dt);draw();requestAnimationFrame(frame)}
+colors();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
